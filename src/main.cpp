@@ -13,6 +13,7 @@ enum KeyPressSurfaces { // this handles keypressing
     KEY_PRESS_SURFACE_DOWN,
     KEY_PRESS_SURFACE_RIGHT,
     KEY_PRESS_SURFACE_LEFT,
+    KEY_PRESS_SURFACE_SKEY,
     KEY_PRESS_SURFACE_TOTAL,
 };
 
@@ -27,11 +28,20 @@ bool quit = false; // event variable to tell the window to close
 SDL_Event e; // event handler object (used to track key presses, mouse motion, joy buttons, etc.)
 
 SDL_Surface* loadSurface(std::string path) {
+    SDL_Surface* optimizedSurface = NULL;
+
     SDL_Surface* loadedSurface = SDL_LoadBMP(path.c_str());
     if (loadedSurface == NULL) {
-        printf("Error loading BMP image: %s\n", SDL_GetError());
+        printf("Error loading BMP image: %s, %s\n", path.c_str(), SDL_GetError());
     }
-    return loadedSurface;
+    else {
+        optimizedSurface = SDL_ConvertSurface(loadedSurface, gScreenSurface->format, 0);
+        if (optimizedSurface == NULL) {
+            printf("Error loading BMP image: %s, %s\n", path.c_str(), SDL_GetError());
+        }
+        SDL_FreeSurface(loadedSurface);
+    }
+    return optimizedSurface;
 }
 
 bool init() {  // function to open SDL window
@@ -89,6 +99,12 @@ bool loadMedia() {
         printf("Error loading BMP image: %s\n", SDL_GetError());
         return false;
     }
+
+    gKeyPressSurfaces[KEY_PRESS_SURFACE_SKEY] = SDL_LoadBMP("src/stretch.bmp");
+    if (gKeyPressSurfaces[KEY_PRESS_SURFACE_SKEY] == NULL) {
+        printf("Error loading BMP image: %s\n", SDL_GetError());
+        return false;
+    }
     return true;
 }
 
@@ -134,6 +150,15 @@ int main(int argc, char* args[]) {
                                 break;
                             case SDLK_RIGHT:
                                 gCurrentSurface = gKeyPressSurfaces[KEY_PRESS_SURFACE_RIGHT];
+                                break;
+                            case SDLK_s:
+                                gCurrentSurface = gKeyPressSurfaces[KEY_PRESS_SURFACE_SKEY];
+                                SDL_Rect stretchRect;
+                                stretchRect.x = 0;
+                                stretchRect.y = 0;
+                                stretchRect.w = SCREEN_WIDTH;
+                                stretchRect.h = SCREEN_HEIGHT;
+                                SDL_BlitScaled(gCurrentSurface, NULL, gScreenSurface, &stretchRect);
                                 break;
                             case SDLK_q:
                                 quit = true;
