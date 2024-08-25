@@ -1,5 +1,6 @@
 // header files included
-#include <SDL2/SDL.h>
+#include <SDL2/SDL.h> 
+#include <SDL2/SDL_image.h>
 #include <stdio.h>
 #include <string>
 
@@ -23,6 +24,8 @@ SDL_Surface* loadSurface(std::string path); // image that we will load and show 
 SDL_Surface* gScreenSurface = NULL; // the surface contained in the window
 SDL_Surface* gCurrentSurface = NULL; //currently displayed image
 SDL_Surface* gKeyPressSurfaces[KEY_PRESS_SURFACE_TOTAL]; // images that correspond to a keypress (its an array of surface pointers)
+SDL_Surface* gPNGSurface = NULL;
+SDL_Rect stretchRect;
 
 bool quit = false; // event variable to tell the window to close
 SDL_Event e; // event handler object (used to track key presses, mouse motion, joy buttons, etc.)
@@ -30,9 +33,9 @@ SDL_Event e; // event handler object (used to track key presses, mouse motion, j
 SDL_Surface* loadSurface(std::string path) {
     SDL_Surface* optimizedSurface = NULL;
 
-    SDL_Surface* loadedSurface = SDL_LoadBMP(path.c_str());
+    SDL_Surface* loadedSurface = IMG_Load(path.c_str());
     if (loadedSurface == NULL) {
-        printf("Error loading BMP image: %s, %s\n", path.c_str(), SDL_GetError());
+        printf("Error loading BMP image: %s, %s\n", path.c_str(), IMG_GetError());
     }
     else {
         optimizedSurface = SDL_ConvertSurface(loadedSurface, gScreenSurface->format, 0);
@@ -56,23 +59,28 @@ bool init() {  // function to open SDL window
             printf("Window could not be created! SDL_Error: %s\n", SDL_GetError());
         }
         else {
-            // gets window surface
-            gScreenSurface = SDL_GetWindowSurface(gWindow);
-
-            // fill surface with white
-            // SDL_FillRect(gScreenSurface, NULL, SDL_MapRGB(gScreenSurface->format, 0xFF, 0xFF, 0xFF));
-
-            // update the surface
-            // SDL_UpdateWindowSurface(gWindow);
+            int imgFlags = IMG_INIT_PNG; // initialize png loading
+            if (!(IMG_Init(imgFlags) & imgFlags)) {
+                printf("SDL_image could not initialize! SDL_image Error: %s\n", IMG_GetError());
+                return false;
+            }
+            else {
+                gScreenSurface = SDL_GetWindowSurface(gWindow); // gets window surface
+            }
         }
     }
     return true;
 }
 
 bool loadMedia() {
-    gKeyPressSurfaces[KEY_PRESS_SURFACE_DEFAULT] = SDL_LoadBMP("src/press.bmp");
+    gPNGSurface = loadSurface("src/loaded.png");
+    if (gPNGSurface == NULL) {
+		printf( "Failed to load PNG image!\n" );
+		return false;
+	}
+    gKeyPressSurfaces[KEY_PRESS_SURFACE_DEFAULT] = gPNGSurface;
     if (gKeyPressSurfaces[KEY_PRESS_SURFACE_DEFAULT] == NULL) {
-        printf("Error loading BMP image: %s\n", SDL_GetError());
+        printf("Error loading png image!");
         return false;
     }
 
@@ -116,7 +124,9 @@ void close() {
 
     SDL_DestroyWindow(gWindow); // destroy window
     gWindow = NULL;
+    gPNGSurface = NULL;
 
+    IMG_Quit();
     SDL_Quit(); // quit subsystems
 }
 
@@ -153,12 +163,10 @@ int main(int argc, char* args[]) {
                                 break;
                             case SDLK_s:
                                 gCurrentSurface = gKeyPressSurfaces[KEY_PRESS_SURFACE_SKEY];
-                                SDL_Rect stretchRect;
                                 stretchRect.x = 0;
                                 stretchRect.y = 0;
                                 stretchRect.w = SCREEN_WIDTH;
                                 stretchRect.h = SCREEN_HEIGHT;
-                                SDL_BlitScaled(gCurrentSurface, NULL, gScreenSurface, &stretchRect);
                                 break;
                             case SDLK_q:
                                 quit = true;
@@ -169,8 +177,14 @@ int main(int argc, char* args[]) {
                         }
                     }
                 }
+                if (gCurrentSurface == gKeyPressSurfaces[KEY_PRESS_SURFACE_SKEY]) {
+                    SDL_BlitScaled(gCurrentSurface, NULL, gScreenSurface, &stretchRect);
+                    SDL_UpdateWindowSurface( gWindow ); // update screen
+                }
+                else {
                 SDL_BlitSurface( gCurrentSurface, NULL, gScreenSurface, NULL ); // apply image to screen
                 SDL_UpdateWindowSurface( gWindow ); // update screen
+                }
             }
         }
     }
