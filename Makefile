@@ -1,7 +1,8 @@
 SRC_DIR = src
 BUILD_DIR = build/debug
 CC = g++
-SRC_FILES = $(wildcard $(SRC_DIR)/*.cpp)
+#SRC_FILES = $(wildcard $(SRC_DIR)/*.cpp)
+SRC_FILES = $(SRC_DIR)/rename.cpp
 OBJ_NAME = play
 INCLUDE_PATHS = -Iinclude
 LIBRARY_PATHS = -Llib
